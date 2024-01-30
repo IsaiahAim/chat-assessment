@@ -1,0 +1,42 @@
+﻿{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% block head_title %} User Registeration {% endblock %}
+
+
+ 
+
+{% block content %}
+
+    <main role="main" class="container">
+        <div class="row justify-content-center mt-2 add-budget-margin" style="margin-bottom:5rem;">
+            <div class="col-md-6 card">
+               <div style="padding: 100px 50px">
+                    <h1>About Webapp</h1>
+                    <p>
+                        A simple WebAPI endpoint is provided to facilitate WebSocket connections between frontend applications for real-time messaging.
+                This resource allows cross-origin requests and supports peer-to-peer messaging in real time.
+                Additionally, read receipts are included in the response.
+                To use, simply register an account and login, select  a user and start chatting instantly.
+
+                    </p>
+               </div>
+            </div>
+            <div class="col-md-6 card">
+               <form action="" method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <legend class="border-bottom text-center mt-3">Register to gain Access</legend>
+                        {{ form|crispy}}
+                        {{form.errors}}
+                    <div class="form-group pt-2 pb-2 col-md-3">
+                        <input type="submit" value="Sign Up" class="btn btn-outline-info">
+                    </div>
+                    <legend class="border-bottom"></legend>
+                    <small class="text-muted mt-4">
+                        <p>Already have an Account ? <a href="{% url 'user_login' %}">Sign In</a></p>
+                    </small>
+                </form>
+            </div>
+        </div>
+    </main>
+    
+{% endblock content %}

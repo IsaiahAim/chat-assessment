@@ -1,0 +1,289 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="row justify-content-center">
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- User List (Left Side) -->
+            <div class="col-md-3 user-list">
+                <h3 style="color: #007bff;">Users</h3>
+                <ul class="list-group">
+                    {% for user in users %}
+                        <li class="list-group-item user-item" data-user-id="{{ user.id }}"
+                            data-username="{{ user.username }}">
+                            <div class="user-circle">{{ user.username|first|upper }}</div>
+                            <div class="user-name">{{ user.username }}</div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <!-- Chat Area (Right Side) -->
+            <div class="col-md-9 chat-area" > <!-- Initially hide chat area -->
+                <div class="chat-header" style="display: none;"> <!-- Initially hide chat header -->
+                    <!-- Chat header code goes here... -->
+                    <div class="user-circle"></div>
+                    <h4 style="margin: 0; color: #fff;"></h4>
+                </div>
+                <div class="chat-messages" id="chat-messages" style="max-height: 70%; overflow-y: auto;">
+                    <!-- Messages will be dynamically added here -->
+                </div>
+
+                <!-- New Message Input -->
+                <div class="message-input" style="position: fixed; bottom: 0; width: 100%; display: none;"> <!-- Initially hide message input -->
+                    <textarea id="new-message" class="form-control" rows="3" placeholder="Type your message..."></textarea>
+                    <button class="btn btn-primary mt-2" id="send-button">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    const authenticatedUser = {{ request.user.id }};
+    const userItems = document.querySelectorAll('.user-item');
+    const chatArea = document.querySelector('.chat-area');
+    const chatHeader = document.querySelector('.chat-header');
+    const messageInput = document.querySelector('.message-input');
+    const chatMessages = document.getElementById('chat-messages');
+    const newMessageInput = document.getElementById('new-message');
+    const sendButton = document.getElementById('send-button');
+    let currentUserId; // Variable to store the current user's ID
+    let socket; // Variable to store the WebSocket connection
+
+    function formatMessageTime(timestamp) {
+        const messageDate = new Date(timestamp);
+        const hours = messageDate.getHours().toString().padStart(2, '0');
+        const minutes = messageDate.getMinutes().toString().padStart(2, '0');
+        return `${hours}:${minutes}`;
+    }
+
+    function scrollToLastMessage() {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function markAsRead(messageId) {
+        // Make a POST request to mark the message as read
+        const updateUrl = window.location.protocol + '//' + window.location.host + '/api/v1/conversation/update-read-status/';
+        fetch(updateUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': '6442b81a-b017-4046-a4c2-ec1833dad9bf:pOdyKnkCPIk9cY4_xq9JKrAi4-eHUtQ-uFZJeeWju_0',
+            },
+            body: JSON.stringify({
+                user: authenticatedUser,
+                message: messageId,
+            }),
+        })
+            .then(response => {
+                if (response.ok) {
+                    // Update the UI to indicate that the message has been read
+                    const messageContainer = document.querySelector(`.message-container[data-message-id="${messageId}"]`);
+                    if (messageContainer) {
+                        const markAsReadLink = messageContainer.querySelector('.mark-as-read');
+                        if (markAsReadLink) {
+                            markAsReadLink.remove();
+                        }
+                    }
+                } else {
+                    console.error('Error marking message as read. Status:', response.status);
+                }
+            })
+            .catch(error => {
+                console.error('Error marking message as read:', error);
+            });
+    }
+
+    function connectWebSocket(authUserId, recipientId) {
+        var ws_scheme = window.location.protocol == "https:" ? "wss" : "ws";
+        let url = ws_scheme + '://' + window.location.host + '/ws/chat';
+        const parts = window.location.href.split('?');
+        url += '/?';
+
+        // Add auth_user and recipient as query parameters
+        url += `sender=${authUserId}&receiver=${recipientId}`;
+        console.log(url);
+        socket = new WebSocket(url);
+
+        socket.onopen = function (event) {
+            console.log('WebSocket connection opened:', event);
+        };
+
+        socket.onmessage = function (event) {
+            var data = JSON.parse(event.data);
+            console.log(data);
+            console.log(data.data.receiver);
+            console.log(authenticatedUser);
+            // Handle incoming WebSocket messages, update the chat, etc.
+            if (data.type === 'new_message' && data.data.receiver === authenticatedUser) {
+                const newMessage = document.createElement('div');
+                newMessage.className = 'message-container received-message';
+                newMessage.innerHTML = `
+                    <div class="message-content">${data.data.message}</div>
+                    <div class="message-time">${formatMessageTime(data.data.created_at)}</div>
+                    <div class="mark-as-read" onclick="markAsRead('${data.data.id}')">Mark as Read</div>
+                `;
+                newMessage.setAttribute('data-message-id', data.data.id);
+
+                chatMessages.appendChild(newMessage);
+
+                // Scroll to the last message
+                scrollToLastMessage();
+            } else if (data.type === 'update_read_status' && data.data.sender.id === authenticatedUser) {
+                // Show the read receipt in the UI
+                const messageId = data.data.id;
+                const messageContainer = document.querySelector(`.message-container[data-message-id="${messageId}"]`);
+                console.log(messageContainer)
+                if (messageContainer) {
+                 messageContainer.querySelector('.read-receipt').innerHTML = '&#10003;&#10003;';
+
+                }
+            }
+        };
+
+        socket.onclose = function (event) {
+            console.log('WebSocket connection closed:', event);
+        };
+
+        socket.onerror = function (error) {
+            console.error('WebSocket error:', error);
+        };
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        userItems.forEach(function (userItem) {
+            userItem.addEventListener('click', function () {
+                const userId = this.getAttribute('data-user-id');
+                currentUserId = userId;
+                const recipientName = this.getAttribute('data-username');
+                loadChatMessages(authenticatedUser, userId);
+                updateChatHeader(userId, recipientName);
+                markUserSelected(this);
+                scrollToLastMessage();
+
+                // Connect to WebSocket when a user is clicked
+                connectWebSocket(authenticatedUser, userId);
+
+                // Show chat area, chat header, and message input when a user is clicked
+                chatArea.style.display = 'block';
+                chatHeader.style.display = 'block';
+                messageInput.style.display = 'block';
+            });
+        });
+
+        sendButton.addEventListener('click', function () {
+            sendMessage(currentUserId);
+        });
+
+        function markUserSelected(selectedUserItem) {
+            userItems.forEach(function (userItem) {
+                userItem.classList.remove('user-selected');
+            });
+            selectedUserItem.classList.add('user-selected');
+        }
+
+        function updateChatHeader(userId, recipient) {
+            const chatHeader = document.querySelector('.chat-header');
+            const userName = document.querySelector('.chat-header h4');
+            const userCircle = document.querySelector('.chat-header .user-circle');
+
+            userName.textContent = recipient;
+            userCircle.textContent = getInitials(recipient);
+        }
+
+        function loadChatMessages(authUserId, selectedUserId) {
+            chatMessages.innerHTML = '';
+            const listUrl = window.location.protocol + '//' + window.location.host + '/api/v1/conversation/' + authUserId + '/' + selectedUserId + '/messages/';
+            fetch(listUrl, {
+                method: 'GET',  // Assuming it's a GET request, adjust if needed
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': '6442b81a-b017-4046-a4c2-ec1833dad9bf:pOdyKnkCPIk9cY4_xq9JKrAi4-eHUtQ-uFZJeeWju_0',  // Replace with your actual API key
+                },
+            })
+                .then(response => response.json())
+                .then(data => {
+                    data.forEach(message => {
+                        const newMessage = document.createElement('div');
+                        const messageClass = message.sender.id === authUserId ? 'sent-message' : 'received-message';
+                        newMessage.className = `message-container ${messageClass}`;
+                        newMessage.innerHTML = `
+                            <div class="message-content">${message.message}</div>
+                            <div class="message-time">${formatMessageTime(message.created_at)}</div>
+                            ${message.sender.id === authUserId
+                                ? (message.is_read ? '&#10003;&#10003;' : '&#10003;')
+                                : (message.is_read ? '' : `<div class="mark-as-read" onclick="markAsRead('${message.id}')">Mark as Read</div>`)}
+                        `;
+                        newMessage.setAttribute('data-message-id', message.id);
+                        chatMessages.appendChild(newMessage);
+                    })
+                    scrollToLastMessage();
+                })
+                .catch(error => console.error('Error fetching messages:', error));
+        }
+
+        function getInitials(username) {
+            const names = username.split(' ');
+            const initials = names.map(name => name.charAt(0)).join('');
+            return initials.toUpperCase();
+        }
+
+        function sendMessage(userId) {
+            const messageText = newMessageInput.value.trim();
+            if (messageText !== '') {
+                const newMessage = document.createElement('div');
+                newMessage.className = 'message-container sent-message';
+                const currentTime = new Date();
+                newMessage.innerHTML = `
+                    <div class="message-content">${messageText}</div>
+                    <div class="message-time">${formatMessageTime(currentTime)}</div>
+                    <div class="read-receipt"></div>
+                `;
+                chatMessages.appendChild(newMessage);
+
+                const messageData = {
+                    sender: authenticatedUser,
+                    receiver: userId,
+                    message: messageText
+                };
+                const createUrl = window.location.protocol + '//' + window.location.host + '/api/v1/conversation/create-message/';
+                fetch(createUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': '6442b81a-b017-4046-a4c2-ec1833dad9bf:pOdyKnkCPIk9cY4_xq9JKrAi4-eHUtQ-uFZJeeWju_0',
+                    },
+                    body: JSON.stringify(messageData),
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Update data-message-id attribute with the id from the response
+                            newMessage.setAttribute('data-message-id', data.data.id);
+                            newMessage.querySelector('.read-receipt').innerHTML = '&#10003';
+                        } else {
+                            console.error('Error creating message. Message:', data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error creating message:', error);
+                    });
+
+                newMessageInput.value = '';
+                scrollToLastMessage();
+            }
+        }
+
+    });
+</script>
+
+{% endblock content %}

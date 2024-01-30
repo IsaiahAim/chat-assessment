@@ -1,0 +1,11 @@
+venv/
+.history/
+__pycache__/
+.idea/
+celery.log
+celerybeat-schedule
+.vscode/
+setup.cfg
+.DS_Store
+debug.log
+

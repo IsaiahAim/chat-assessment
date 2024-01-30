@@ -1,0 +1,13 @@
+{% block content %}
+    {% autoescape off %}
+    <div class="page-wrapper reg-container reset-page margin-extra">
+        <section class="login-wrapper">
+            <div class="login-fields">               
+               Hi {{ user.email }},
+               <p>Your account has been successfully created. Please click the link below to activate your account.</p>
+                http://{{domain}}{% url 'account-activation' uidb64=uid token=token %}
+            </div>
+        </section>
+	</div>
+    {% endautoescape %}
+{% endblock content %}

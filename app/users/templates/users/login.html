@@ -1,0 +1,25 @@
+﻿{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+<title>{% block head_title %} User Login {% endblock %}</title>
+
+{% block content %}
+    <main role="main" class="container mt-4">
+        <div class="row justify-content-center add-budget-margin">
+            <div class="col-md-6 card text-center mt-5">
+                <form action="" method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <legend class="mt-3">User Login</legend>
+                        {{ form|crispy }}
+                        {{form.errors}}
+                    <div class="form-group pt-2 pb-2 col-md-3">
+                        <input type="submit" value="Sign in" class="btn btn-outline-info w-100">
+                    </div>
+                    <legend class="border-bottom"></legend>                    
+                </form>
+            </div>
+        </div>
+    </main>
+
+        
+    </div>
+{% endblock content %}

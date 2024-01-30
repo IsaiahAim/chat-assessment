@@ -1,0 +1,117 @@
+/* Add your WhatsApp-like chat styles here */
+
+.user-list {
+    max-height: 100vh;
+    overflow-y: auto;
+    background-color: #343a40;
+    color: #fff;
+    padding: 15px;
+    border-right: 1px solid #495057;
+}
+
+.chat-area {
+    padding: 15px;
+    height: 100vh;
+    overflow-y: auto;
+}
+
+.user-item {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid #495057;
+}
+
+.user-item:hover {
+    background-color: #495057;
+}
+
+.user-circle {
+    width: 40px;
+    height: 40px;
+    background-color: #007bff;
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 10px;
+    font-size: 18px;
+}
+
+.user-name {
+    flex-grow: 1;
+    font-weight: bold;
+}
+
+.user-selected {
+    background-color: #495057;
+    border-left: 3px solid #007bff;
+}
+
+.chat-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+    padding: 10px;
+    background-color: #495057;
+    border-bottom: 1px solid #fff;
+}
+
+.chat-messages {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.message-container {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.sent-message {
+    background-color: #dcf8c6;
+    align-self: flex-start;
+    border-radius: 10px 10px 10px 0;
+    padding: 10px;
+    max-width: 70%;
+}
+
+.received-message {
+    background-color: #fff;
+    align-self: flex-end;
+    border-radius: 10px 10px 0 10px;
+    padding: 10px;
+    max-width: 70%;
+}
+
+.message-content {
+    word-wrap: break-word;
+}
+
+.message-time {
+    font-size: 10px;
+    margin-left: 5px;
+}
+
+.read-receipt {
+    color: #28a745;
+    position: absolute;
+    bottom: 0;
+    right: 5px;
+}
+
+.mark-as-read {
+    color: #007bff;
+    cursor: pointer;
+    font-size: 12px;
+    position: absolute;
+    bottom: -20px;
+    left: 0;
+}
+
+.mark-as-read:hover {
+    color: red;
+}

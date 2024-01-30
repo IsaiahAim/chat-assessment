@@ -1,0 +1,32 @@
+version: '3.9'
+name: "assessment-chat"
+
+services:
+
+  redis:
+    image: redis:7.0-alpine
+    container_name: assessment-redis
+    ports:
+      - '21379:6379'
+    volumes:
+      -  chat-redisdata:/data
+
+  api: &api
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: isaiahaim/assessment
+    command: python manage.py runserver 0.0.0.0:21001
+    volumes:
+      - ./app:/app
+    ports:
+      - '21001:21001'
+    env_file:
+      - ./.env
+    restart: always
+    depends_on:
+      - redis
+
+
+volumes:
+  chat-redisdata:
